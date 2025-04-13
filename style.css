@@ -1234,3 +1234,73 @@ footer {
         display: block;
     }
 }
+
+/* Signup Page Styles */
+.form-row {
+    display: flex;
+    gap: 15px;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+.password-requirements {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: var(--light-color);
+    border-radius: 5px;
+}
+
+.password-requirements p {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    margin-bottom: 5px;
+}
+
+.password-requirements ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.password-requirements li {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+}
+
+.password-requirements li::before {
+    content: '✗';
+    margin-right: 8px;
+    color: var(--danger-color);
+}
+
+.password-requirements li.valid::before {
+    content: '✓';
+    color: var(--success-color);
+}
+
+.terms-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-light);
+}
+
+.terms-checkbox input[type="checkbox"] {
+    margin-top: 3px;
+}
+
+.terms-checkbox a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.terms-checkbox a:hover {
+    text-decoration: underline;
+}

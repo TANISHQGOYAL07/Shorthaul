@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
   initLoginModal();
   initMap();
   initLoginForm();
+  initSignupForm();
 });
 
 // Navigation functionality
@@ -1010,6 +1011,113 @@ function initLoginForm() {
 // Initialize login form if on login page
 if (window.location.pathname.includes('login.html')) {
     initLoginForm();
+}
+
+// Signup Form Functionality
+function initSignupForm() {
+    const signupForm = document.getElementById('signupForm');
+    if (!signupForm) return;
+
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+    const requirements = {
+        length: document.getElementById('length'),
+        uppercase: document.getElementById('uppercase'),
+        number: document.getElementById('number'),
+        special: document.getElementById('special')
+    };
+
+    // Password validation
+    function validatePassword(password) {
+        const hasLength = password.length >= 8;
+        const hasUppercase = /[A-Z]/.test(password);
+        const hasNumber = /[0-9]/.test(password);
+        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+        requirements.length.classList.toggle('valid', hasLength);
+        requirements.uppercase.classList.toggle('valid', hasUppercase);
+        requirements.number.classList.toggle('valid', hasNumber);
+        requirements.special.classList.toggle('valid', hasSpecial);
+
+        return hasLength && hasUppercase && hasNumber && hasSpecial;
+    }
+
+    // Password match validation
+    function validatePasswordMatch() {
+        const password = passwordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+        
+        if (password && confirmPassword) {
+            if (password !== confirmPassword) {
+                confirmPasswordInput.setCustomValidity("Passwords don't match");
+            } else {
+                confirmPasswordInput.setCustomValidity('');
+            }
+        }
+    }
+
+    // Event listeners for password validation
+    passwordInput.addEventListener('input', () => {
+        validatePassword(passwordInput.value);
+        validatePasswordMatch();
+    });
+
+    confirmPasswordInput.addEventListener('input', validatePasswordMatch);
+
+    // Form submission
+    signupForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = {
+            firstName: document.getElementById('firstName').value,
+            lastName: document.getElementById('lastName').value,
+            email: document.getElementById('email').value,
+            phone: document.getElementById('phone').value,
+            password: passwordInput.value
+        };
+
+        if (!validatePassword(formData.password)) {
+            alert('Please ensure your password meets all requirements');
+            return;
+        }
+
+        try {
+            // Here you would typically make an API call to your backend
+            const response = await fetch('/api/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                alert('Account created successfully! Please login.');
+                window.location.href = 'login.html';
+            } else {
+                throw new Error('Signup failed');
+            }
+        } catch (error) {
+            console.error('Signup error:', error);
+            alert('Signup failed. Please try again.');
+        }
+    });
+
+    // Social signup buttons
+    document.querySelector('.social-btn.google').addEventListener('click', () => {
+        // Implement Google OAuth
+        alert('Google signup will be implemented');
+    });
+
+    document.querySelector('.social-btn.facebook').addEventListener('click', () => {
+        // Implement Facebook OAuth
+        alert('Facebook signup will be implemented');
+    });
+}
+
+// Initialize signup form if on signup page
+if (window.location.pathname.includes('signup.html')) {
+    initSignupForm();
 }
 
 
