@@ -912,66 +912,165 @@ function initLoginForm() {
 
 // Map Integration and Live Pricing
 function initMap() {
+    // Initialize the map
     const map = new google.maps.Map(document.getElementById('map'), {
         center: { lat: 28.7041, lng: 77.1025 }, // Default to New Delhi
-        zoom: 13
+        zoom: 13,
+        styles: [
+            {
+                featureType: "poi",
+                elementType: "labels",
+                stylers: [{ visibility: "off" }]
+            }
+        ]
     });
 
+    // Initialize services
+    const directionsService = new google.maps.DirectionsService();
+    const directionsRenderer = new google.maps.DirectionsRenderer({
+        map: map,
+        suppressMarkers: true,
+        polylineOptions: {
+            strokeColor: '#6C63FF',
+            strokeWeight: 5
+        }
+    });
+
+    // Initialize autocomplete for pickup and destination
     const pickupInput = document.getElementById('pickup');
     const destinationInput = document.getElementById('destination');
-    const estimatedFare = document.getElementById('estimatedFare');
-
     const pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput);
     const destinationAutocomplete = new google.maps.places.Autocomplete(destinationInput);
 
-    // Calculate distance and update fare
-    function calculateFare() {
-        const service = new google.maps.DistanceMatrixService();
-        const selectedOption = document.querySelector('.ride-option.selected');
-        
-        if (!selectedOption || !pickupInput.value || !destinationInput.value) return;
+    // Custom markers
+    let pickupMarker = null;
+    let destinationMarker = null;
 
-        service.getDistanceMatrix({
-            origins: [pickupInput.value],
-            destinations: [destinationInput.value],
-            travelMode: google.maps.TravelMode.DRIVING,
-            unitSystem: google.maps.UnitSystem.METRIC
-        }, (response, status) => {
+    // Restrict autocomplete to India
+    const options = {
+        componentRestrictions: { country: 'in' },
+        fields: ['geometry', 'name', 'formatted_address']
+    };
+    pickupAutocomplete.setOptions(options);
+    destinationAutocomplete.setOptions(options);
+
+    // Update route when places are selected
+    pickupAutocomplete.addListener('place_changed', updateRoute);
+    destinationAutocomplete.addListener('place_changed', updateRoute);
+
+    function updateRoute() {
+        const pickup = pickupAutocomplete.getPlace();
+        const destination = destinationAutocomplete.getPlace();
+
+        if (!pickup || !pickup.geometry || !destination || !destination.geometry) {
+            return;
+        }
+
+        // Create or update markers
+        if (pickupMarker) pickupMarker.setMap(null);
+        if (destinationMarker) destinationMarker.setMap(null);
+
+        pickupMarker = new google.maps.Marker({
+            map: map,
+            position: pickup.geometry.location,
+            icon: {
+                url: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+                scaledSize: new google.maps.Size(40, 40)
+            },
+            title: 'Pickup Location'
+        });
+
+        destinationMarker = new google.maps.Marker({
+            map: map,
+            position: destination.geometry.location,
+            icon: {
+                url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                scaledSize: new google.maps.Size(40, 40)
+            },
+            title: 'Destination'
+        });
+
+        // Calculate and display route
+        const request = {
+            origin: pickup.geometry.location,
+            destination: destination.geometry.location,
+            travelMode: google.maps.TravelMode.DRIVING
+        };
+
+        directionsService.route(request, (result, status) => {
             if (status === 'OK') {
-                const distance = response.rows[0].elements[0].distance.value / 1000; // Convert to km
-                const duration = response.rows[0].elements[0].duration.text;
+                directionsRenderer.setDirections(result);
                 
-                // Base fare calculation based on ride type
-                let baseFare = 0;
-                switch (selectedOption.dataset.option) {
-                    case 'toto-pool':
-                        baseFare = 25 + (distance * 5);
-                        break;
-                    case 'cycle-rickshaw':
-                        baseFare = 30 + (distance * 6);
-                        break;
-                    case 'female-rider':
-                        baseFare = 40 + (distance * 8);
-                        break;
-                }
-                
-                estimatedFare.textContent = `₹${Math.round(baseFare)} (${distance.toFixed(1)} km)`;
+                // Get route details
+                const route = result.routes[0];
+                const distance = route.legs[0].distance.text;
+                const duration = route.legs[0].duration.text;
+                const distanceValue = route.legs[0].distance.value / 1000; // Convert to km
+
+                // Update UI
+                document.getElementById('routeDistance').textContent = distance;
+                document.getElementById('routeDuration').textContent = duration;
+
+                // Calculate base fare
+                const baseFare = calculateBaseFare(distanceValue);
+                document.getElementById('baseFare').textContent = `₹${baseFare}`;
+
+                // Update fare estimates for each ride option
+                updateFareEstimates(distanceValue);
+
+                // Fit map to show the entire route
+                const bounds = new google.maps.LatLngBounds();
+                bounds.extend(pickup.geometry.location);
+                bounds.extend(destination.geometry.location);
+                map.fitBounds(bounds);
             }
         });
     }
 
-    // Add event listeners for fare calculation
-    pickupInput.addEventListener('place_changed', calculateFare);
-    destinationInput.addEventListener('place_changed', calculateFare);
-    
-    // Add event listeners for ride option selection
-    document.querySelectorAll('.ride-option').forEach(option => {
-        option.addEventListener('click', () => {
-            document.querySelectorAll('.ride-option').forEach(opt => opt.classList.remove('selected'));
-            option.classList.add('selected');
-            calculateFare();
+    // Calculate base fare based on distance
+    function calculateBaseFare(distance) {
+        const baseRate = 20; // Base fare for first 2 km
+        const ratePerKm = 10; // Rate per additional km
+        
+        if (distance <= 2) {
+            return baseRate;
+        } else {
+            return Math.round(baseRate + (distance - 2) * ratePerKm);
+        }
+    }
+
+    // Update fare estimates for each ride option
+    function updateFareEstimates(distance) {
+        const rideOptions = document.querySelectorAll('.ride-option');
+        const baseFare = calculateBaseFare(distance);
+
+        rideOptions.forEach(option => {
+            const type = option.dataset.option;
+            let fare;
+
+            switch (type) {
+                case 'toto-pool':
+                    fare = Math.round(baseFare * 0.7); // 30% cheaper
+                    break;
+                case 'cycle-rickshaw':
+                    fare = baseFare;
+                    break;
+                case 'female-rider':
+                    fare = Math.round(baseFare * 1.2); // 20% premium
+                    break;
+                default:
+                    fare = baseFare;
+            }
+
+            const priceEstimate = option.querySelector('.price-estimate');
+            priceEstimate.textContent = `₹${fare}`;
         });
-    });
+    }
+}
+
+// Initialize map if on booking page
+if (document.getElementById('map')) {
+    initMap();
 }
 
 // Hero Section Buttons
