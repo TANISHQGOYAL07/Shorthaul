@@ -1,23 +1,30 @@
 // Main JavaScript file for ShortHaul website
 
 document.addEventListener('DOMContentLoaded', function() {
-  // Initialize all components
-  initNavigation();
-  initStickyHeader();
-  initRideOptions();
-  initFaqAccordion();
-  initTestimonialSlider();
-  initCounterAnimation();
-  initBookingForm();
-  initContactForm();
-  initRideEstimator();
-  initSmoothScroll();
-  initAnimations();
-  initMobileDetection();
-  initLoginModal();
-  initMap();
-  initLoginForm();
-  initSignupForm();
+    const path = window.location.pathname;
+    
+    if (path.includes('login.html')) {
+        // Login page initialization
+        initLoginForm();
+    } else if (path.includes('signup.html')) {
+        // Signup page initialization
+        initSignupForm();
+    } else {
+        // Main page initialization
+        initNavigation();
+        initStickyHeader();
+        initRideOptions();
+        initFaqAccordion();
+        initTestimonialSlider();
+        initCounterAnimation();
+        initBookingForm();
+        initContactForm();
+        initRideEstimator();
+        initSmoothScroll();
+        initAnimations();
+        initMobileDetection();
+        initMap();
+    }
 });
 
 // Navigation functionality
@@ -847,36 +854,61 @@ function addDynamicStyles() {
 // Add dynamic styles when DOM is loaded
 document.addEventListener('DOMContentLoaded', addDynamicStyles);
 
-// Login Modal Functionality
-const loginBtn = document.querySelector('.nav-btn');
-const loginModal = document.createElement('div');
-loginModal.className = 'login-modal';
-loginModal.innerHTML = `
-    <div class="modal-content">
-        <span class="close-modal">&times;</span>
-        <h2>Login to ShortHaul</h2>
-        <form id="loginForm">
-            <div class="form-group">
-                <input type="email" placeholder="Email" required>
-            </div>
-            <div class="form-group">
-                <input type="password" placeholder="Password" required>
-            </div>
-            <button type="submit" class="btn">Login</button>
-            <p class="signup-link">Don't have an account? <a href="#">Sign up</a></p>
-        </form>
-    </div>
-`;
+// Login Form Functionality
+function initLoginForm() {
+    const loginForm = document.getElementById('loginForm');
+    if (!loginForm) return;
 
-document.body.appendChild(loginModal);
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const rememberMe = document.getElementById('remember').checked;
 
-loginBtn.addEventListener('click', () => {
-    loginModal.style.display = 'flex';
-});
+        try {
+            // Here you would typically make an API call to your backend
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email,
+                    password,
+                    rememberMe
+                })
+            });
 
-loginModal.querySelector('.close-modal').addEventListener('click', () => {
-    loginModal.style.display = 'none';
-});
+            if (response.ok) {
+                // Store user session
+                if (rememberMe) {
+                    localStorage.setItem('userEmail', email);
+                }
+                sessionStorage.setItem('isLoggedIn', 'true');
+                
+                // Redirect to dashboard or home page
+                window.location.href = 'index.html';
+            } else {
+                throw new Error('Login failed');
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            alert('Login failed. Please check your credentials and try again.');
+        }
+    });
+
+    // Social login buttons
+    document.querySelector('.social-btn.google').addEventListener('click', () => {
+        // Implement Google OAuth
+        alert('Google login will be implemented');
+    });
+
+    document.querySelector('.social-btn.facebook').addEventListener('click', () => {
+        // Implement Facebook OAuth
+        alert('Facebook login will be implemented');
+    });
+}
 
 // Map Integration and Live Pricing
 function initMap() {
@@ -950,68 +982,6 @@ document.querySelector('.hero-buttons .btn:first-child').addEventListener('click
 document.querySelector('.hero-buttons .btn-secondary').addEventListener('click', () => {
     window.location.href = '#how-it-works';
 });
-
-// Login Form Functionality
-function initLoginForm() {
-    const loginForm = document.getElementById('loginForm');
-    if (!loginForm) return;
-
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const rememberMe = document.getElementById('remember').checked;
-
-        try {
-            // Here you would typically make an API call to your backend
-            // For now, we'll simulate a successful login
-            const response = await fetch('/api/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email,
-                    password,
-                    rememberMe
-                })
-            });
-
-            if (response.ok) {
-                // Store user session
-                if (rememberMe) {
-                    localStorage.setItem('userEmail', email);
-                }
-                sessionStorage.setItem('isLoggedIn', 'true');
-                
-                // Redirect to dashboard or home page
-                window.location.href = 'index.html';
-            } else {
-                throw new Error('Login failed');
-            }
-        } catch (error) {
-            console.error('Login error:', error);
-            alert('Login failed. Please check your credentials and try again.');
-        }
-    });
-
-    // Social login buttons
-    document.querySelector('.social-btn.google').addEventListener('click', () => {
-        // Implement Google OAuth
-        alert('Google login will be implemented');
-    });
-
-    document.querySelector('.social-btn.facebook').addEventListener('click', () => {
-        // Implement Facebook OAuth
-        alert('Facebook login will be implemented');
-    });
-}
-
-// Initialize login form if on login page
-if (window.location.pathname.includes('login.html')) {
-    initLoginForm();
-}
 
 // Signup Form Functionality
 function initSignupForm() {
@@ -1113,11 +1083,6 @@ function initSignupForm() {
         // Implement Facebook OAuth
         alert('Facebook signup will be implemented');
     });
-}
-
-// Initialize signup form if on signup page
-if (window.location.pathname.includes('signup.html')) {
-    initSignupForm();
 }
 
 
