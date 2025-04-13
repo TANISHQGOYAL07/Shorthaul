@@ -6,6 +6,7 @@
     <title>ShortHaul - Safe Short-Distance Travel for Women</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places"></script>
 </head>
 <body>
     <!-- Header Section -->
@@ -20,7 +21,7 @@
                     <li><a href="#testimonials">Testimonials</a></li>
                     <li><a href="#contact">Contact</a></li>
                 </ul>
-                <button class="btn nav-btn">Login </button>
+                <a href="login.html" class="btn nav-btn">Login</a>
                 <div class="hamburger">
                     <div class="line"></div>
                     <div class="line"></div>
@@ -172,6 +173,8 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <div id="map"></div>
                     
                     <div class="form-group">
                         <label>Choose Your Ride Type</label>

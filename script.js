@@ -14,6 +14,9 @@ document.addEventListener('DOMContentLoaded', function() {
   initSmoothScroll();
   initAnimations();
   initMobileDetection();
+  initLoginModal();
+  initMap();
+  initLoginForm();
 });
 
 // Navigation functionality
@@ -310,46 +313,51 @@ function initBookingForm() {
   }
 }
 
-// Contact form submission
+// Contact Form Functionality
 function initContactForm() {
-  const contactForm = document.getElementById('contactForm');
-  
-  if (contactForm) {
-      contactForm.addEventListener('submit', function(e) {
-          e.preventDefault();
-          
-          // Get form values
-          const name = document.getElementById('contactName').value;
-          const email = document.getElementById('contactEmail').value;
-          const subject = document.getElementById('contactSubject').value;
-          const message = document.getElementById('contactMessage').value;
-          
-          // Validate form
-          if (!name || !email || !message) {
-              showNotification('Please fill in all required fields', 'error');
-              return;
-          }
-          
-          // Create contact object
-          const contactData = {
-              name,
-              email,
-              subject,
-              message
-          };
-          
-          // Simulate API call
-          setTimeout(() => {
-              console.log('Contact data:', contactData);
-              
-              // Show confirmation message
-              showNotification('Your message has been sent successfully!', 'success');
-              
-              // Reset form
-              contactForm.reset();
-          }, 1000);
-      });
-  }
+    const contactForm = document.getElementById('contactForm');
+    
+    contactForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = {
+            name: document.getElementById('contactName').value,
+            email: document.getElementById('contactEmail').value,
+            subject: document.getElementById('contactSubject').value,
+            message: document.getElementById('contactMessage').value
+        };
+
+        try {
+            const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    service_id: 'YOUR_SERVICE_ID', // Replace with your EmailJS service ID
+                    template_id: 'YOUR_TEMPLATE_ID', // Replace with your EmailJS template ID
+                    user_id: 'YOUR_USER_ID', // Replace with your EmailJS user ID
+                    template_params: {
+                        from_name: formData.name,
+                        from_email: formData.email,
+                        subject: formData.subject,
+                        message: formData.message,
+                        to_email: 'tanishqgoyal500@gmail.com'
+                    }
+                })
+            });
+
+            if (response.ok) {
+                alert('Message sent successfully!');
+                contactForm.reset();
+            } else {
+                throw new Error('Failed to send message');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to send message. Please try again later.');
+        }
+    });
 }
 
 // Fare estimator functionality
@@ -837,5 +845,171 @@ function addDynamicStyles() {
 
 // Add dynamic styles when DOM is loaded
 document.addEventListener('DOMContentLoaded', addDynamicStyles);
+
+// Login Modal Functionality
+const loginBtn = document.querySelector('.nav-btn');
+const loginModal = document.createElement('div');
+loginModal.className = 'login-modal';
+loginModal.innerHTML = `
+    <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <h2>Login to ShortHaul</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <input type="email" placeholder="Email" required>
+            </div>
+            <div class="form-group">
+                <input type="password" placeholder="Password" required>
+            </div>
+            <button type="submit" class="btn">Login</button>
+            <p class="signup-link">Don't have an account? <a href="#">Sign up</a></p>
+        </form>
+    </div>
+`;
+
+document.body.appendChild(loginModal);
+
+loginBtn.addEventListener('click', () => {
+    loginModal.style.display = 'flex';
+});
+
+loginModal.querySelector('.close-modal').addEventListener('click', () => {
+    loginModal.style.display = 'none';
+});
+
+// Map Integration and Live Pricing
+function initMap() {
+    const map = new google.maps.Map(document.getElementById('map'), {
+        center: { lat: 28.7041, lng: 77.1025 }, // Default to New Delhi
+        zoom: 13
+    });
+
+    const pickupInput = document.getElementById('pickup');
+    const destinationInput = document.getElementById('destination');
+    const estimatedFare = document.getElementById('estimatedFare');
+
+    const pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput);
+    const destinationAutocomplete = new google.maps.places.Autocomplete(destinationInput);
+
+    // Calculate distance and update fare
+    function calculateFare() {
+        const service = new google.maps.DistanceMatrixService();
+        const selectedOption = document.querySelector('.ride-option.selected');
+        
+        if (!selectedOption || !pickupInput.value || !destinationInput.value) return;
+
+        service.getDistanceMatrix({
+            origins: [pickupInput.value],
+            destinations: [destinationInput.value],
+            travelMode: google.maps.TravelMode.DRIVING,
+            unitSystem: google.maps.UnitSystem.METRIC
+        }, (response, status) => {
+            if (status === 'OK') {
+                const distance = response.rows[0].elements[0].distance.value / 1000; // Convert to km
+                const duration = response.rows[0].elements[0].duration.text;
+                
+                // Base fare calculation based on ride type
+                let baseFare = 0;
+                switch (selectedOption.dataset.option) {
+                    case 'toto-pool':
+                        baseFare = 25 + (distance * 5);
+                        break;
+                    case 'cycle-rickshaw':
+                        baseFare = 30 + (distance * 6);
+                        break;
+                    case 'female-rider':
+                        baseFare = 40 + (distance * 8);
+                        break;
+                }
+                
+                estimatedFare.textContent = `₹${Math.round(baseFare)} (${distance.toFixed(1)} km)`;
+            }
+        });
+    }
+
+    // Add event listeners for fare calculation
+    pickupInput.addEventListener('place_changed', calculateFare);
+    destinationInput.addEventListener('place_changed', calculateFare);
+    
+    // Add event listeners for ride option selection
+    document.querySelectorAll('.ride-option').forEach(option => {
+        option.addEventListener('click', () => {
+            document.querySelectorAll('.ride-option').forEach(opt => opt.classList.remove('selected'));
+            option.classList.add('selected');
+            calculateFare();
+        });
+    });
+}
+
+// Hero Section Buttons
+document.querySelector('.hero-buttons .btn:first-child').addEventListener('click', () => {
+    window.location.href = '#booking';
+});
+
+document.querySelector('.hero-buttons .btn-secondary').addEventListener('click', () => {
+    window.location.href = '#how-it-works';
+});
+
+// Login Form Functionality
+function initLoginForm() {
+    const loginForm = document.getElementById('loginForm');
+    if (!loginForm) return;
+
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const rememberMe = document.getElementById('remember').checked;
+
+        try {
+            // Here you would typically make an API call to your backend
+            // For now, we'll simulate a successful login
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email,
+                    password,
+                    rememberMe
+                })
+            });
+
+            if (response.ok) {
+                // Store user session
+                if (rememberMe) {
+                    localStorage.setItem('userEmail', email);
+                }
+                sessionStorage.setItem('isLoggedIn', 'true');
+                
+                // Redirect to dashboard or home page
+                window.location.href = 'index.html';
+            } else {
+                throw new Error('Login failed');
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            alert('Login failed. Please check your credentials and try again.');
+        }
+    });
+
+    // Social login buttons
+    document.querySelector('.social-btn.google').addEventListener('click', () => {
+        // Implement Google OAuth
+        alert('Google login will be implemented');
+    });
+
+    document.querySelector('.social-btn.facebook').addEventListener('click', () => {
+        // Implement Facebook OAuth
+        alert('Facebook login will be implemented');
+    });
+}
+
+// Initialize login form if on login page
+if (window.location.pathname.includes('login.html')) {
+    initLoginForm();
+}
 
 
